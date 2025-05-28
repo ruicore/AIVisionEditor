@@ -1251,53 +1251,62 @@ class PhotoEditorApp(ctk.CTk):
             messagebox.showwarning("Warning", "Please enter a question")
             return
 
-        # Convert the current image (self.image) to a temporary file path
-        # temp_image_path = "temp_image.jpg"
-        # self.image.save(temp_image_path)
-
-        # Prepare the conversation payload
-        # conversation = [
-        #     {"role": "user", "content": [{"type": "text", "text": question}]}
-        # ]
+        # response = requests.post(
+        #     'https://api.deepai.org/api/image-editor',
+        #     headers={'api-key': self.deepAi},
+        #     files={
+        #         'image': self.image,
+        #         'text': ('input.txt', io.StringIO(self.question_entry.get()))
+        #     }
+        # )
         #
-        # Call the ChatGPT API
-        # response = self.call_chat_gpt_api(conversation, temp_image_path)
+        # # Handle the result
+        # if response.status_code == 200:
+        #     result = response.json()
+        #     image_url = result.get('output_url')
+        #     print("Edited image URL:", image_url)
         #
-        # Display the response
-        # self.response_box.delete("1.0", "end")
-        # self.response_box.insert("1.0", str(response))
+        #     # Download the image from the returned URL
+        #     image_response = requests.get(image_url)
+        #     if image_response.status_code == 200:
+        #         self.image = Image.open(io.BytesIO(image_response.content))
+        #         self.display_image()
+        #     else:
+        #         print("Failed to download image:", image_response.status_code)
+        # else:
+        #     print("Error:", response.status_code)
+        #     print(response.text)
 
-        # # Clean up the temporary image file
-        # if os.path.exists(temp_image_path):
-        #     os.remove(temp_image_path)
+        with tempfile.NamedTemporaryFile(suffix=".jpg") as tmp_img:
+            self.image.save(tmp_img, format='JPEG')
+            tmp_img.seek(0)
 
+            text_file_like = io.StringIO(self.question_entry.get())
 
-        response = requests.post(
-            'https://api.deepai.org/api/image-editor',
-            headers={'api-key': self.deepAi},
-            files={
-                'image': self.image,
-                'text': ('input.txt', io.StringIO(self.question_entry.get()))
-            }
-        )
+            response = requests.post(
+                'https://api.deepai.org/api/image-editor',
+                headers={'api-key': self.deepAi},
+                files={
+                    'image': ('input.jpg', tmp_img, 'image/jpeg'),
+                    'text': ('input.txt', text_file_like)
+                }
+            )
 
-        # Handle the result
-        if response.status_code == 200:
-            result = response.json()
-            image_url = result.get('output_url')
-            print("Edited image URL:", image_url)
+            if response.status_code == 200:
+                result = response.json()
+                image_url = result.get('output_url')
+                print("Edited image URL:", image_url)
 
-            # Download the image from the returned URL
-            image_response = requests.get(image_url)
-            if image_response.status_code == 200:
-                self.image = Image.open(io.BytesIO(image_response.content))
-                self.display_image()
+                # Download and update self.image
+                image_response = requests.get(image_url)
+                if image_response.status_code == 200:
+                    self.image = Image.open(io.BytesIO(image_response.content))
+                    self.display_image()
+                else:
+                    print("Failed to download image:", image_response.status_code)
             else:
-                print("Failed to download image:", image_response.status_code)
-        else:
-            print("Error:", response.status_code)
-            print(response.text)
-
+                print("Error:", response.status_code)
+                print(response.text)
 
     def call_chat_gpt_api(self, conversation, image_path):
         """Call the ChatGPT API with optional image input"""
