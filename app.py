@@ -1208,20 +1208,41 @@ class PhotoEditorApp(ctk.CTk):
             os.remove(temp_image_path)
 
     def ai_editing(self):
-        with open(text_path, 'rb') as txt_file:
-            response = requests.post(
-                'https://api.deepai.org/api/image-editor',
-                headers={'api-key': api_key},
-                files={
-                    'image': self.image,
-                    'text': txt_file
-                }
-            )
+        self.question_entry = ctk.CTkEntry(
+            self.chat_frame,
+            width=300,
+            placeholder_text="Ask about the image..."
+        )
+        self.question_entry.pack(pady=5)
 
-        # Output the result
+        self.chat_frame.pack(pady=10)
+        if not self.chat_widgets_initialized:
+            self.setup_chat_frame()
+            self.chat_widgets_initialized = True
+
+
+        response = requests.post(
+            'https://api.deepai.org/api/image-editor',
+            headers={'api-key': self.deepAi},
+            files={
+                'image': self.image,
+                'text': ('input.txt', io.StringIO(self.question_entry.get()))
+            }
+        )
+
+        # Handle the result
         if response.status_code == 200:
             result = response.json()
-            print("Edited image URL:", result.get('output_url'))
+            image_url = result.get('output_url')
+            print("Edited image URL:", image_url)
+
+            # Download the image from the returned URL
+            image_response = requests.get(image_url)
+            if image_response.status_code == 200:
+                self.image = Image.open(io.BytesIO(image_response.content))
+                self.display_image()
+            else:
+                print("Failed to download image:", image_response.status_code)
         else:
             print("Error:", response.status_code)
             print(response.text)
