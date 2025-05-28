@@ -233,7 +233,7 @@ class PhotoEditorApp(ctk.CTk):
             "buttons": [
                 ("Auto-Enhance", self.auto_enhance),
                 ("AI Assistant", self.ask_chatbot),
-                ("AI Editing", self.show_load_image_view),
+                ("AI Editing", self.ai_editing),
 
             ],
         }
@@ -1167,7 +1167,33 @@ class PhotoEditorApp(ctk.CTk):
         hover_color="#3D5A80"
         )
         self.send_button.pack(pady=5)
-    
+
+    def setup_deepai_frame(self):
+        """Setup the input and output widgets inside the chat frame"""
+        self.question_entry = ctk.CTkEntry(
+            self.chat_frame,
+            width=300,
+            placeholder_text="Ask about the image..."
+        )
+        self.question_entry.pack(pady=5)
+
+        self.response_box = ctk.CTkTextbox(
+            self.chat_frame,
+            width=400,
+            height=150
+        )
+        self.response_box.pack(pady=5)
+
+        self.send_button = ctk.CTkButton(
+            self.chat_frame,
+            text="Send",
+            command=self.ai_editing,
+            fg_color="#2A3F54",
+            hover_color="#3D5A80"
+        )
+        self.send_button.pack(pady=5)
+
+
     def ask_chatbot(self):
         """Query ChatGPT API about the image"""
         if not self.chat_frame.winfo_ismapped():
@@ -1208,17 +1234,42 @@ class PhotoEditorApp(ctk.CTk):
             os.remove(temp_image_path)
 
     def ai_editing(self):
-        self.question_entry = ctk.CTkEntry(
-            self.chat_frame,
-            width=300,
-            placeholder_text="Ask about the image..."
-        )
-        self.question_entry.pack(pady=5)
+        if not self.chat_frame.winfo_ismapped():
+            # Show the chat frame and initialize widgets if not already done
+            self.chat_frame.pack(pady=10)
+            if not self.chat_widgets_initialized:
+                self.setup_deepai_frame()
+                self.chat_widgets_initialized = True
+            return
 
-        self.chat_frame.pack(pady=10)
-        if not self.chat_widgets_initialized:
-            self.setup_chat_frame()
-            self.chat_widgets_initialized = True
+        if not hasattr(self, 'image') or not self.image:
+            messagebox.showwarning("Warning", "No image loaded")
+            return
+
+        question = self.question_entry.get()
+        if not question.strip():
+            messagebox.showwarning("Warning", "Please enter a question")
+            return
+
+        # Convert the current image (self.image) to a temporary file path
+        # temp_image_path = "temp_image.jpg"
+        # self.image.save(temp_image_path)
+
+        # Prepare the conversation payload
+        # conversation = [
+        #     {"role": "user", "content": [{"type": "text", "text": question}]}
+        # ]
+        #
+        # Call the ChatGPT API
+        # response = self.call_chat_gpt_api(conversation, temp_image_path)
+        #
+        # Display the response
+        # self.response_box.delete("1.0", "end")
+        # self.response_box.insert("1.0", str(response))
+
+        # # Clean up the temporary image file
+        # if os.path.exists(temp_image_path):
+        #     os.remove(temp_image_path)
 
 
         response = requests.post(
