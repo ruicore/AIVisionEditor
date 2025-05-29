@@ -46,8 +46,8 @@ class PhotoEditorApp(ctk.CTk):
         self.basicUrl = "https://genai.hkbu.edu.hk/general/rest"
         self.modelName = "gpt-4-o-mini" 
         self.apiVersion = "2024-05-01-preview"
-        self.apiKey = os.environ['GENAI_API_KEY']
-        self.deepAi = os.environ['DEEP_AI_API_KEY']
+        self.apiKey = '1058c44a-d4c2-4b0f-8fc6-f27574f6f6f3'
+        self.deepAi = '1b4fd031-9ed5-4df4-a648-3e625e5fc3c9'
 
         self.undo_stack = []
         self.redo_stack = []
@@ -234,6 +234,7 @@ class PhotoEditorApp(ctk.CTk):
                 ("Auto-Enhance", self.auto_enhance),
                 ("AI Assistant", self.ask_chatbot),
                 ("AI Editing", self.ai_editing),
+                ("AI Art Teacher", self.ai_teacher),
 
             ],
         }
@@ -1167,6 +1168,31 @@ class PhotoEditorApp(ctk.CTk):
         hover_color="#3D5A80"
         )
         self.send_button.pack(pady=5)
+    
+    def setup_aiTeacher_frame(self):
+        """Setup the input and output widgets inside the chat frame"""
+        self.question_entry = ctk.CTkEntry(
+            self.chat_frame,
+            width=300,
+            placeholder_text="Ask about the image..."
+        )
+        self.question_entry.pack(pady=5)
+
+        self.response_box = ctk.CTkTextbox(
+            self.chat_frame,
+            width=400,
+            height=150
+        )
+        self.response_box.pack(pady=5)
+
+        self.send_button = ctk.CTkButton(
+        self.chat_frame,
+        text="Send",
+        command=self.ai_teacher,
+        fg_color="#2A3F54",
+        hover_color="#3D5A80"
+        )
+        self.send_button.pack(pady=5)
 
     def setup_deepai_frame(self):
         """Setup the input and output widgets inside the chat frame"""
@@ -1228,6 +1254,46 @@ class PhotoEditorApp(ctk.CTk):
         # Display the response
         self.response_box.delete("1.0", "end")
         self.response_box.insert("1.0", str(response))
+
+        # Clean up the temporary image file
+        if os.path.exists(temp_image_path):
+            os.remove(temp_image_path)
+            
+    def ai_teacher(self):
+        """Query ChatGPT API about the image"""
+        if not self.chat_frame.winfo_ismapped():
+            # Show the chat frame and initialize widgets if not already done
+            self.chat_frame.pack(pady=10)
+            if not self.chat_widgets_initialized:
+                self.setup_aiTeacher_frame()
+                self.chat_widgets_initialized = True
+            return
+
+        if not hasattr(self, 'image') or not self.image:
+            messagebox.showwarning("Warning", "No image loaded")
+            return
+
+        question = "Please provide constructive and detailed recommendations on how to enhance the photo.  For each suggestion, explain specifically how applying the adjustment would improve the image’s overall quality, clarity, or visual appeal. Your response should be thorough, offering productive criticism and clear reasoning behind each proposed enhancement. Please reply in plain text only"
+        
+        
+        
+        
+
+        # Convert the current image (self.image) to a temporary file path
+        temp_image_path = "temp_image.jpg"
+        self.image.save(temp_image_path)
+
+        # Prepare the conversation payload
+        conversation = [
+            {"role": "user", "content": [{"type": "text", "text": question}]}
+        ]
+
+        # Call the ChatGPT API
+        response = self.call_chat_gpt_api(conversation, temp_image_path)
+
+        # Display the response
+        self.response_box.delete("1.0", "end")
+        self.response_box.insert("1.0", str(response).replace("*", "").replace("`", ""))
 
         # Clean up the temporary image file
         if os.path.exists(temp_image_path):
